@@ -235,3 +235,47 @@ nyc_airbnb |>
     ## 2 Queens             91.6  9.65                   -69.3                  -95.0
     ## 3 Brooklyn           69.6 21.0                    -92.2                 -106. 
     ## 4 Manhattan          95.7 27.1                   -124.                  -154.
+
+anonymous function
+
+``` r
+nyc_airbnb |> 
+  nest(datasets = -borough) |> 
+  mutate(
+    fits = map(datasets, \(data) lm(price ~ stars + room_type, data = data)),
+    results = map(fits, broom::tidy)
+  ) |> 
+  select(-datasets, -fits) |> 
+  unnest(results) |> 
+  select(borough, term, estimate) |> 
+  pivot_wider(
+    names_from = term,
+    values_from = estimate
+  )
+```
+
+    ## # A tibble: 4 × 5
+    ##   borough   `(Intercept)` stars `room_typePrivate room` `room_typeShared room`
+    ##   <chr>             <dbl> <dbl>                   <dbl>                  <dbl>
+    ## 1 Bronx              90.1  4.45                   -52.9                  -70.5
+    ## 2 Queens             91.6  9.65                   -69.3                  -95.0
+    ## 3 Brooklyn           69.6 21.0                    -92.2                 -106. 
+    ## 4 Manhattan          95.7 27.1                   -124.                  -154.
+
+``` r
+nyc_airbnb |> 
+  filter(borough == "Manhattan") |> 
+  nest(datasets = -neighborhood) |> 
+  mutate(
+    fits = map(datasets, \(df) lm(price ~ stars + room_type, data = df)),
+    results = map(fits, broom::tidy)
+  ) |> 
+  select(neighborhood, results) |> 
+  unnest(results) |> 
+  filter(term == "room_typePrivate room") |> 
+  ggplot(aes(x = neighborhood, y = estimate)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 80, hjust = 1))
+```
+
+<img src="linear_models_01_files/figure-gfm/unnamed-chunk-17-1.png" alt="" width="90%" />
